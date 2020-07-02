@@ -7,12 +7,31 @@ struct DecoderUnwrapper: Decodable {
     }
 }
 
-public final class PostgresDataDecoder {
-    public let jsonDecoder: JSONDecoder
+public protocol PostgresJSONDataDecoder {
+    func decode<T>(_ type: T.Type, from data: Data) throws -> T where T : Decodable
+    var dateDecodingStrategy: JSONDecoder.DateDecodingStrategy { get set }
+    static var defaultInstance: PostgresJSONDataDecoder { get }
+}
 
-    public init(json: JSONDecoder = JSONDecoder()) {
+extension JSONDecoder : PostgresJSONDataDecoder {
+    public static var defaultInstance: PostgresJSONDataDecoder {
+        let def = JSONDecoder()
+        def.dateDecodingStrategy = .formatted(BridgesDateFormatter())
+        return def
+    }
+    
+    public func decode<T>(_ type: T.Type, from data: Data) throws -> T where T : Decodable {
+        return try self.decode(type, from: data)
+    }
+}
+
+public final class PostgresDataDecoder {
+    public static var type: PostgresJSONDataDecoder.Type = JSONDecoder.self
+    
+    public let jsonDecoder: PostgresJSONDataDecoder
+    
+    public init(json: PostgresJSONDataDecoder = PostgresDataDecoder.type.defaultInstance) {
         self.jsonDecoder = json
-        self.jsonDecoder.dateDecodingStrategy = .formatted(BridgesDateFormatter())
     }
 
     public func decode<T>(_ type: T.Type, from data: PostgresData) throws -> T
@@ -55,9 +74,9 @@ public final class PostgresDataDecoder {
         }
 
         let data: PostgresData
-        let json: JSONDecoder
+        let json: PostgresJSONDataDecoder
 
-        init(data: PostgresData, json: JSONDecoder) {
+        init(data: PostgresData, json: PostgresJSONDataDecoder) {
             self.data = data
             self.json = json
         }
@@ -101,7 +120,7 @@ public final class PostgresDataDecoder {
         var currentIndex: Int = 0
 
         let data: [PostgresData]
-        let json: JSONDecoder
+        let json: PostgresJSONDataDecoder
         var codingPath: [CodingKey] {
             []
         }
@@ -144,7 +163,7 @@ public final class PostgresDataDecoder {
 
     struct _ValueDecoder: SingleValueDecodingContainer {
         let data: PostgresData
-        let json: JSONDecoder
+        let json: PostgresJSONDataDecoder
         var codingPath: [CodingKey] {
             []
         }

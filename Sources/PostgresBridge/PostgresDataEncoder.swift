@@ -1,11 +1,30 @@
 import Foundation
 
-public final class PostgresDataEncoder {
-    public let json: JSONEncoder
+public protocol PostgresJSONDataEncoder {
+    func encode<T>(_ value: T) throws -> Data where T : Encodable
+    var dateEncodingStrategy: JSONEncoder.DateEncodingStrategy { get set }
+    static var defaultInstance: PostgresJSONDataEncoder { get }
+}
 
-    public init(json: JSONEncoder = JSONEncoder()) {
-        json.dateEncodingStrategy = .iso8601
-        self.json = json
+extension JSONEncoder : PostgresJSONDataEncoder {
+    public static var defaultInstance: PostgresJSONDataEncoder {
+        let def = JSONEncoder()
+        def.dateEncodingStrategy = .iso8601
+        return def
+    }
+    
+    public func encode<T>(_ value: T) throws -> Data where T : Encodable {
+        return try self.encode(value)
+    }
+}
+
+public final class PostgresDataEncoder {
+    public static var type: PostgresJSONDataEncoder.Type = JSONEncoder.self
+    
+    public let jsonEncoder: PostgresJSONDataEncoder
+
+    public init(json: PostgresJSONDataEncoder = PostgresDataEncoder.type.defaultInstance) {
+        self.jsonEncoder = json
     }
 
     public func encode(_ value: Encodable) throws -> PostgresData {
@@ -19,7 +38,7 @@ public final class PostgresDataEncoder {
             } else if let array = context.array {
                 return PostgresData(array: array, elementType: .jsonb)
             } else {
-                return try PostgresData(jsonb: self.json.encode(_Wrapper(value)))
+                return try PostgresData(jsonb: self.jsonEncoder.encode(_Wrapper(value)))
             }
         }
     }
