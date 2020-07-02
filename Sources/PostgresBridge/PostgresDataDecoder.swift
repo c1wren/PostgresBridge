@@ -1,4 +1,5 @@
 import Foundation
+import IkigaJSON
 
 struct DecoderUnwrapper: Decodable {
     let decoder: Decoder
@@ -7,31 +8,13 @@ struct DecoderUnwrapper: Decodable {
     }
 }
 
-public protocol PostgresJSONDataDecoder {
-    func decode<T>(_ type: T.Type, from data: Data) throws -> T where T : Decodable
-    var dateDecodingStrategy: JSONDecoder.DateDecodingStrategy { get set }
-    static var defaultInstance: PostgresJSONDataDecoder { get }
-}
-
-extension JSONDecoder : PostgresJSONDataDecoder {
-    public static var defaultInstance: PostgresJSONDataDecoder {
-        let def = JSONDecoder()
-        def.dateDecodingStrategy = .formatted(BridgesDateFormatter())
-        return def
-    }
-    
-    public func decode<T>(_ type: T.Type, from data: Data) throws -> T where T : Decodable {
-        return try self.decode(type, from: data)
-    }
-}
-
 public final class PostgresDataDecoder {
-    public static var type: PostgresJSONDataDecoder.Type = JSONDecoder.self
+    public let jsonDecoder: IkigaJSONDecoder
     
-    public let jsonDecoder: PostgresJSONDataDecoder
-    
-    public init(json: PostgresJSONDataDecoder = PostgresDataDecoder.type.defaultInstance) {
-        self.jsonDecoder = json
+    public init() {
+        let decoder = IkigaJSONDecoder()
+        decoder.settings.dateDecodingStrategy = .formatted(BridgesDateFormatter())
+        self.jsonDecoder = decoder
     }
 
     public func decode<T>(_ type: T.Type, from data: PostgresData) throws -> T
@@ -74,9 +57,9 @@ public final class PostgresDataDecoder {
         }
 
         let data: PostgresData
-        let json: PostgresJSONDataDecoder
+        let json: IkigaJSONDecoder
 
-        init(data: PostgresData, json: PostgresJSONDataDecoder) {
+        init(data: PostgresData, json: IkigaJSONDecoder) {
             self.data = data
             self.json = json
         }
@@ -120,7 +103,7 @@ public final class PostgresDataDecoder {
         var currentIndex: Int = 0
 
         let data: [PostgresData]
-        let json: PostgresJSONDataDecoder
+        let json: IkigaJSONDecoder
         var codingPath: [CodingKey] {
             []
         }
@@ -163,7 +146,7 @@ public final class PostgresDataDecoder {
 
     struct _ValueDecoder: SingleValueDecodingContainer {
         let data: PostgresData
-        let json: PostgresJSONDataDecoder
+        let json: IkigaJSONDecoder
         var codingPath: [CodingKey] {
             []
         }

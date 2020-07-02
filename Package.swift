@@ -38,6 +38,8 @@ if localDev {
     deps.append("https://github.com/SwifQL/Bridges.git", from: "1.0.0-rc", targets: .product(name: "Bridges", package: "Bridges"))
 }
 
+deps.append("https://github.com/Ikiga/IkigaJSON.git", from: "2.0.0", targets: .product(name: "IkigaJSON", package: "IkigaJSON"))
+
 // MARK: - Package
 
 let package = Package(

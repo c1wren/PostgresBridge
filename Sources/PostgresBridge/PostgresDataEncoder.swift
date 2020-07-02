@@ -1,30 +1,13 @@
 import Foundation
-
-public protocol PostgresJSONDataEncoder {
-    func encode<T>(_ value: T) throws -> Data where T : Encodable
-    var dateEncodingStrategy: JSONEncoder.DateEncodingStrategy { get set }
-    static var defaultInstance: PostgresJSONDataEncoder { get }
-}
-
-extension JSONEncoder : PostgresJSONDataEncoder {
-    public static var defaultInstance: PostgresJSONDataEncoder {
-        let def = JSONEncoder()
-        def.dateEncodingStrategy = .iso8601
-        return def
-    }
-    
-    public func encode<T>(_ value: T) throws -> Data where T : Encodable {
-        return try self.encode(value)
-    }
-}
+import IkigaJSON
 
 public final class PostgresDataEncoder {
-    public static var type: PostgresJSONDataEncoder.Type = JSONEncoder.self
-    
-    public let jsonEncoder: PostgresJSONDataEncoder
+    public let jsonEncoder: IkigaJSONEncoder
 
-    public init(json: PostgresJSONDataEncoder = PostgresDataEncoder.type.defaultInstance) {
-        self.jsonEncoder = json
+    public init() {
+        var encoder = IkigaJSONEncoder()
+        encoder.settings.dateEncodingStrategy = .iso8601
+        self.jsonEncoder = encoder
     }
 
     public func encode(_ value: Encodable) throws -> PostgresData {
